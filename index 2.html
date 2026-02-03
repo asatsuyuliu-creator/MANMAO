@@ -1,0 +1,729 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>百变蛮猫 MANMAO - Dark Mode</title>
+    <style>
+        /* --- 1. 全局深邃设定 --- */
+        body {
+            font-family: 'Comic Sans MS', 'Chalkboard SE', 'YouYuan', '幼圆', cursive, sans-serif;
+            background-color: #050505; /* 极夜黑，作为canvas加载前的兜底 */
+            color: #ecf0f1; /* 银灰文字 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            position: relative; /* 为 absolute 子元素提供定位基准 */
+        }
+
+        /* --- 新增：背景粒子画布 --- */
+        #particle-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1; /* 置于最底层 */
+            /* 确保鼠标事件能穿透画布传给上面的按钮 */
+            pointer-events: none; 
+        }
+
+        #game-container {
+            width: 100%;
+            max-width: 450px;
+            text-align: center;
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 80vh;
+        }
+
+        /* --- 2. 首页标题 --- */
+        #start-screen {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            animation: floating 3s ease-in-out infinite;
+        }
+
+        @keyframes floating {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+            100% { transform: translateY(0px); }
+        }
+
+        .main-title-zh {
+            font-size: 56px;
+            font-weight: 900;
+            color: #00f2ff; /* 霓虹青 */
+            text-shadow: 0 0 10px rgba(0, 242, 255, 0.8), 0 0 20px rgba(0, 242, 255, 0.4);
+            margin-bottom: 15px;
+            letter-spacing: 5px;
+        }
+
+        .sub-title-en {
+            font-size: 24px;
+            font-weight: bold;
+            color: #050505;
+            background-color: #00f2ff;
+            font-family: 'Arial Rounded MT Bold', cursive;
+            padding: 5px 20px;
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0, 242, 255, 0.5);
+            letter-spacing: 4px;
+            margin-bottom: 50px;
+            text-transform: uppercase;
+        }
+
+        /* --- 3. 帅气控制台按钮 (晶体风格) --- */
+        .btn {
+            display: block;
+            width: 100%;
+            max-width: 320px; /* 首页按钮保持原有宽度 */
+            padding: 18px 10px;
+            font-size: 18px;
+            margin: 20px auto;
+            cursor: pointer;
+
+            background: rgba(20, 20, 20, 0.6);
+            border: 1px solid #00f2ff;
+            color: #00f2ff;
+
+            border-radius: 8px;
+            font-family: inherit;
+            font-weight: bold;
+            text-align: center;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px rgba(0, 242, 255, 0.1);
+            backdrop-filter: blur(5px);
+            box-sizing: border-box; /* 确保padding不撑大宽度 */
+        }
+
+        .btn:hover, .btn:active {
+            background: #00f2ff;
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 242, 255, 0.6);
+            transform: scale(1.02);
+        }
+
+        #lang-btn {
+            margin-top: 40px;
+            border-color: #555;
+            color: #888;
+            font-size: 14px;
+            padding: 10px;
+            background: transparent;
+            box-shadow: none;
+        }
+        #lang-btn:hover {
+            border-color: #ecf0f1;
+            color: #ecf0f1;
+            background: rgba(255,255,255,0.1);
+        }
+
+        /* --- 4. 题目区域布局修正 (关键修改) --- */
+        /* 给问答界面设置一个固定的最大宽度容器，保证上下对齐 */
+        #quiz-screen {
+            width: 100%;
+            max-width: 340px; /* 统一宽度限制 */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #question-box {
+            width: 100%; /* 占满父容器 (340px) */
+            box-sizing: border-box; /* 包含padding */
+            font-size: 20px;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            text-align: left;
+            padding: 25px;
+
+            background: rgba(15, 15, 15, 0.85);
+            border: 1px solid #333;
+            border-left: 5px solid #00f2ff;
+            border-radius: 12px;
+
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            color: #ecf0f1;
+            font-weight: bold;
+        }
+
+        #options-box {
+            width: 100%; /* 占满父容器 */
+        }
+
+        /* 答题选项按钮微调：强制占满宽度，去掉左右 margin */
+        #quiz-screen .btn {
+            max-width: 100%; /* 覆盖全局的320px限制，跟随父容器 */
+            width: 100%;
+            background: #111;
+            border-color: #444;
+            color: #bbb;
+            margin: 12px 0; /* 仅保留上下间距 */
+        }
+
+        #quiz-screen .btn:hover {
+            background: #00f2ff;
+            color: #000;
+        }
+
+        /* --- 5. 画布与结果 --- */
+        canvas {
+            width: 100%;
+            height: auto;
+            border: 2px solid #333;
+            box-shadow: 0 0 40px rgba(0, 242, 255, 0.15);
+            background-color: #000000;
+            image-rendering: pixelated;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        #result-screen h2 {
+            color: #00f2ff;
+            text-shadow: 0 0 10px rgba(0,242,255,0.5);
+        }
+        #result-tags {
+            margin-bottom: 20px;
+            color: #555;
+            letter-spacing: 2px;
+            font-family: monospace;
+        }
+
+        .hidden { display: none !important; }
+        .progress-text { color: #555; font-size: 14px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+<canvas id="particle-canvas"></canvas>
+
+<audio id="bgm" src="assets/bgm.mp3" loop preload="auto"></audio>
+
+<div id="game-container">
+
+    <div id="start-screen">
+        <div class="main-title-zh" id="title-zh-text"></div>
+        <div class="sub-title-en" id="title-en-text"></div>
+
+        <button class="btn" id="start-btn-text" onclick="startGame()"></button>
+        <button class="btn" id="lang-btn" onclick="toggleLanguage()">Switch to English</button>
+    </div>
+
+    <div id="quiz-screen" class="hidden">
+        <div id="question-box">Loading System...</div>
+        <div id="options-box"></div>
+        <div class="progress-text">
+            <span id="progress-label">SYNC</span>: <span id="progress">1</span> / 8
+        </div>
+    </div>
+
+    <div id="result-screen" class="hidden">
+        <h2 style="margin-top: 0;" id="result-title-text">✨ 你的灵魂形态 ✨</h2>
+
+        <div id="loading" class="hidden" style="color: #666; margin: 20px;" id="loading-text">/// RENDERING...</div>
+
+        <canvas id="catCanvas" width="1080" height="1920"></canvas>
+
+        <div id="result-tags"></div>
+
+        <button class="btn" id="download-btn-text" onclick="downloadImage()">保存高清壁纸</button>
+        <button class="btn" id="replay-btn-text" style="border-style: dashed; opacity: 0.7;" onclick="location.reload()">再测一次</button>
+    </div>
+</div>
+
+<script>
+    // ==========================================
+    // 0. 🌍 多语言数据中心
+    // ==========================================
+    let currentLang = 'zh'; // 默认中文
+
+    const uiText = {
+        zh: {
+            titleZH: "百变蛮猫",
+            titleEN: "MANMAO",
+            startBtn: "启动测试",
+            langBtn: "Switch to English",
+            progressLabel: "进度",
+            resultTitle: "✨ 灵魂形态解析完成 ✨",
+            loading: "/// 正在绘制高清图层...",
+            downloadBtn: "下载高清档案",
+            replayBtn: "重新同步"
+        },
+        en: {
+            titleZH: "MANMAO",
+            titleEN: "PROJECT",
+            startBtn: "INITIATE",
+            langBtn: "切换到中文",
+            progressLabel: "SYNC",
+            resultTitle: "✨ SOUL FORM ANALYZED ✨",
+            loading: "/// RENDERING HIGH-RES...",
+            downloadBtn: "DOWNLOAD ARCHIVE",
+            replayBtn: "RE-SYNC"
+        }
+    };
+
+    // 🎵 音乐逻辑
+    function playMusic() {
+        var audio = document.getElementById("bgm");
+        var playPromise = audio.play();
+        if (playPromise !== undefined) {
+            playPromise.catch(error => { console.log("Waiting for interaction..."); });
+        }
+    }
+    // window.onload 在后面统一处理
+
+    // 🌍 切换语言
+    function toggleLanguage() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        updateUIText();
+        if (!document.getElementById('quiz-screen').classList.contains('hidden')) {
+            showQuestion();
+        }
+    }
+
+    function updateUIText() {
+        const t = uiText[currentLang];
+        document.getElementById('title-zh-text').textContent = t.titleZH;
+        document.getElementById('title-en-text').textContent = t.titleEN;
+        document.getElementById('start-btn-text').textContent = t.startBtn;
+        document.getElementById('lang-btn').textContent = t.langBtn;
+        document.getElementById('progress-label').textContent = t.progressLabel;
+        document.getElementById('result-title-text').textContent = t.resultTitle;
+        document.getElementById('loading-text').textContent = t.loading;
+        document.getElementById('download-btn-text').textContent = t.downloadBtn;
+        document.getElementById('replay-btn-text').textContent = t.replayBtn;
+    }
+
+    // ==========================================
+    // 1. 素材库配置
+    // ==========================================
+    const rawAssetList = [
+        "bg_Magic_01.png", "bg_Nature_01.png", "bg_Dark_01.png", "bg_Cute_01.png",
+        "bg_Tech_01.png", "bg_Retro_01.png", "bg_Dream_01.png", "bg_Ocean_01.png",
+
+        "skin_Magic_01.png", "skin_Magic_02.png", "skin_Nature_01.png", "skin_Nature_02.png",
+        "skin_Dark_01.png", "skin_Dark_02.png", "skin_Cute_01.png", "skin_Cute_02.png",
+        "skin_Tech_01.png", "skin_Retro_01.png", "skin_Dream_01.png", "skin_Ocean_01.png",
+
+        "wing_Magic_01.png", "wing_Magic_02.png", "wing_Magic_03.png",
+        "wing_Nature_01.png", "wing_Nature_02.png",
+        "wing_Dark_01.png", "wing_Dark_02.png", "wing_Cute_01.png", "wing_Cute_02.png",
+        "wing_Tech_01.png", "wing_Tech_02.png", "wing_Retro_01.png", "wing_Retro_02.png",
+        "wing_Dream_01.png", "wing_Ocean_01.png",
+
+        "hat_Magic_01.png", "hat_Nature_01.png", "hat_Dark_01.png", "hat_Cute_01.png",
+        "hat_Tech_01.png", "hat_Retro_01.png", "hat_Dream_01.png", "hat_Ocean_01.png",
+
+        "tie_Magic_01.png", "tie_Nature_01.png", "tie_Dark_01.png", "tie_Cute_01.png",
+        "tie_Tech_01.png", "tie_Retro_01.png", "tie_Dream_01.png", "tie_Ocean_01.png"
+    ];
+
+    // ==========================================
+    // 2. 题目配置 (双语)
+    // ==========================================
+    const questionsData = [
+        {
+            zh: {
+                text: "1. 当你进入一个像素森林，你会看到什么样的场景？",
+                options: [
+                    { text: "A. 发光的神秘符文", tag: "Magic" },
+                    { text: "B. 四周纷飞的萤火虫", tag: "Nature" },
+                    { text: "C. 远处闪亮的小屋", tag: "Cute" },
+                    { text: "D. 废弃的古老墓碑", tag: "Dark" }
+                ]
+            },
+            en: {
+                text: "1. Entering a pixel forest, what catches your eye?",
+                options: [
+                    { text: "A. Glowing mystic runes", tag: "Magic" },
+                    { text: "B. Floating fireflies everywhere", tag: "Nature" },
+                    { text: "C. A cozy shining hut nearby", tag: "Cute" },
+                    { text: "D. Abandoned ancient tombstones", tag: "Dark" }
+                ]
+            }
+        },
+        {
+            zh: {
+                text: "2. 你希望拥有一种什么样的特殊能力？",
+                options: [
+                    { text: "A. 操控电子数据", tag: "Tech" },
+                    { text: "B. 时间倒流", tag: "Retro" },
+                    { text: "C. 操控潮汐", tag: "Ocean" },
+                    { text: "D. 编织梦境", tag: "Dream" }
+                ]
+            },
+            en: {
+                text: "2. What special ability do you desire most?",
+                options: [
+                    { text: "A. Manipulate digital data", tag: "Tech" },
+                    { text: "B. Reverse time flow", tag: "Retro" },
+                    { text: "C. Control the tides", tag: "Ocean" },
+                    { text: "D. Weave dreams together", tag: "Dream" }
+                ]
+            }
+        },
+        {
+            zh: {
+                text: "3. 你的猫咪如果不抓老鼠，它会喜欢收集什么？",
+                options: [
+                    { text: "A. 魔法药水瓶", tag: "Magic" },
+                    { text: "B. 奇怪的螺丝钉", tag: "Tech" },
+                    { text: "C. 彩色的贝壳", tag: "Ocean" },
+                    { text: "D. 森林里的干花", tag: "Nature" }
+                ]
+            },
+            en: {
+                text: "3. Instead of mice, what does your cat collect?",
+                options: [
+                    { text: "A. Magic potion bottles", tag: "Magic" },
+                    { text: "B. Strange rusty screws", tag: "Tech" },
+                    { text: "C. Colorful seashells", tag: "Ocean" },
+                    { text: "D. Dried forest flowers", tag: "Nature" }
+                ]
+            }
+        },
+        {
+            zh: {
+                text: "4. 周末的午后，你最想在哪里度过？",
+                options: [
+                    { text: "A. 云端的城堡", tag: "Dream" },
+                    { text: "B. 充满霓虹灯的街道", tag: "Tech" },
+                    { text: "C. 安静的老图书馆", tag: "Retro" },
+                    { text: "D. 温暖的被窝里", tag: "Cute" }
+                ]
+            },
+            en: {
+                text: "4. Where would you spend a Sunday afternoon?",
+                options: [
+                    { text: "A. Castle in the clouds", tag: "Dream" },
+                    { text: "B. Neon-lit cyberpunk streets", tag: "Tech" },
+                    { text: "C. Quiet old library", tag: "Retro" },
+                    { text: "D. Warm cozy blanket", tag: "Cute" }
+                ]
+            }
+        },
+        {
+            zh: {
+                text: "5. 如果遇到危险，你的猫咪会怎么做？",
+                options: [
+                    { text: "A. 潜入阴影中消失", tag: "Dark" },
+                    { text: "B. 召唤藤蔓防御", tag: "Nature" },
+                    { text: "C. 发射激光射线", tag: "Tech" },
+                    { text: "D. 施展防御结界", tag: "Magic" }
+                ]
+            },
+            en: {
+                text: "5. In danger, how does your cat react?",
+                options: [
+                    { text: "A. Vanish into shadows", tag: "Dark" },
+                    { text: "B. Summon vines to block", tag: "Nature" },
+                    { text: "C. Fire laser beams", tag: "Tech" },
+                    { text: "D. Cast a defensive shield", tag: "Magic" }
+                ]
+            }
+        },
+        {
+            zh: {
+                text: "6. 你最喜欢的颜色风格是？",
+                options: [
+                    { text: "A. 深邃的黑紫", tag: "Dark" },
+                    { text: "B. 柔和的粉白", tag: "Cute" },
+                    { text: "C. 怀旧的棕黄", tag: "Retro" },
+                    { text: "D. 清新的海蓝", tag: "Ocean" }
+                ]
+            },
+            en: {
+                text: "6. What is your favorite color palette?",
+                options: [
+                    { text: "A. Deep black and purple", tag: "Dark" },
+                    { text: "B. Soft pink and white", tag: "Cute" },
+                    { text: "C. Nostalgic sepia", tag: "Retro" },
+                    { text: "D. Fresh ocean blue", tag: "Ocean" }
+                ]
+            }
+        },
+        {
+            zh: {
+                text: "7. 你的猫咪如果会说话，它的声音听起来像？",
+                options: [
+                    { text: "A. 像风铃一样空灵", tag: "Dream" },
+                    { text: "B. 像海浪一样深沉", tag: "Ocean" },
+                    { text: "C. 像收音机里的杂音", tag: "Retro" },
+                    { text: "D. 像小孩子一样软萌", tag: "Cute" }
+                ]
+            },
+            en: {
+                text: "7. If your cat could speak, it would sound like...",
+                options: [
+                    { text: "A. Ethereal wind chimes", tag: "Dream" },
+                    { text: "B. Deep ocean waves", tag: "Ocean" },
+                    { text: "C. Old radio static", tag: "Retro" },
+                    { text: "D. Cute childish voice", tag: "Cute" }
+                ]
+            }
+        },
+        {
+            zh: {
+                text: "8. 旅途的终点，你希望获得什么？",
+                options: [
+                    { text: "A. 无尽的知识", tag: "Magic" },
+                    { text: "B. 永恒的平静", tag: "Nature" },
+                    { text: "C. 绝对的力量", tag: "Dark" },
+                    { text: "D. 虚幻的自由", tag: "Dream" }
+                ]
+            },
+            en: {
+                text: "8. At the journey's end, what do you seek?",
+                options: [
+                    { text: "A. Infinite knowledge", tag: "Magic" },
+                    { text: "B. Eternal peace", tag: "Nature" },
+                    { text: "C. Absolute power", tag: "Dark" },
+                    { text: "D. Illusory freedom", tag: "Dream" }
+                ]
+            }
+        }
+    ];
+
+    // ==========================================
+    // 3. 核心逻辑
+    // ==========================================
+    let currentQ = 0;
+    let tagScores = {};
+    let parsedAssets = { bg: {}, skin: {}, wing: {}, tie: {}, hat: {} };
+
+    function initDatabase() {
+        rawAssetList.forEach(filename => {
+            const parts = filename.split('_');
+            if (parts.length < 3) return;
+            const category = parts[0];
+            const tag = parts[1];
+            if (parsedAssets[category]) {
+                if (!parsedAssets[category][tag]) {
+                    parsedAssets[category][tag] = [];
+                }
+                parsedAssets[category][tag].push(filename);
+            }
+        });
+        console.log("Database Ready");
+    }
+
+    function startGame() {
+        playMusic();
+        initDatabase();
+        tagScores = {};
+        const allTags = ["Magic", "Nature", "Dark", "Cute", "Tech", "Retro", "Dream", "Ocean"];
+        allTags.forEach(t => tagScores[t] = 0);
+
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-screen').classList.remove('hidden');
+        currentQ = 0;
+        showQuestion();
+    }
+
+    function showQuestion() {
+        const qData = questionsData[currentQ];
+        const q = qData[currentLang];
+
+        document.getElementById('question-box').textContent = q.text;
+        document.getElementById('progress').textContent = currentQ + 1;
+
+        const optsDiv = document.getElementById('options-box');
+        optsDiv.innerHTML = '';
+
+        q.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'btn';
+            btn.textContent = opt.text;
+            btn.onclick = () => handleAnswer(opt.tag);
+            optsDiv.appendChild(btn);
+        });
+    }
+
+    function handleAnswer(tag) {
+        if (tagScores[tag] !== undefined) tagScores[tag]++;
+        currentQ++;
+        if (currentQ < questionsData.length) showQuestion();
+        else generateCat();
+    }
+
+    function generateCat() {
+        document.getElementById('quiz-screen').classList.add('hidden');
+        document.getElementById('result-screen').classList.remove('hidden');
+        document.getElementById('loading').classList.remove('hidden');
+
+        const sortedTags = Object.entries(tagScores).sort((a, b) => b[1] - a[1]);
+        const mainTag = sortedTags[0][0];
+        const subTag = sortedTags[1] ? sortedTags[1][0] : mainTag;
+
+        document.getElementById('result-tags').textContent = `CODE: ${mainTag} / ${subTag}`;
+
+        const outfit = {
+            bg:   pickAsset('bg', mainTag, subTag),
+            skin: pickAsset('skin', mainTag, subTag),
+            wing: pickAsset('wing', mainTag, subTag),
+            tie:  pickAsset('tie', mainTag, subTag),
+            hat:  pickAsset('hat', mainTag, subTag)
+        };
+
+        drawCat(outfit);
+    }
+
+    function pickAsset(category, mainTag, subTag) {
+        const categoryPool = parsedAssets[category];
+        if (!categoryPool) return null;
+        let candidates = categoryPool[mainTag];
+        if (!candidates || candidates.length === 0) candidates = categoryPool[subTag];
+        if (!candidates || candidates.length === 0) {
+            const allTags = Object.keys(categoryPool);
+            candidates = categoryPool[allTags[Math.floor(Math.random() * allTags.length)]];
+        }
+        const choice = candidates[Math.floor(Math.random() * candidates.length)];
+        return `assets/${choice}`;
+    }
+
+    function drawCat(outfit) {
+        // 注意：这里是画猫的canvas，不是背景
+        const ctx = document.getElementById('catCanvas').getContext('2d');
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(0, 0, 1080, 1920);
+
+        const layerOrder = [outfit.bg, outfit.wing, outfit.skin, outfit.tie, outfit.hat];
+
+        const promises = layerOrder.map(src => new Promise(resolve => {
+            if (!src) { resolve(null); return; }
+            const img = new Image();
+            img.onload = () => resolve(img);
+            img.onerror = () => { console.error("Missing:", src); resolve(null); };
+            img.src = src;
+        }));
+
+        Promise.all(promises).then(images => {
+            images.forEach((img, index) => {
+                if (img) {
+                    if (index === 0) {
+                        ctx.save();
+                        ctx.globalAlpha = 0.7;
+                        ctx.drawImage(img, 0, 0, 1080, 1920);
+                        ctx.restore();
+                    } else {
+                        ctx.drawImage(img, 0, 0, 1080, 1920);
+                    }
+                }
+            });
+            document.getElementById('loading').classList.add('hidden');
+        });
+    }
+
+    function downloadImage() {
+        const canvas = document.getElementById('catCanvas');
+        const link = document.createElement('a');
+        link.download = 'My_ManMao.png';
+        link.href = canvas.toDataURL('image/png', 1.0);
+        link.click();
+    }
+</script>
+
+<script>
+(function() {
+    const canvas = document.getElementById('particle-canvas');
+    const ctx = canvas.getContext('2d');
+    let w, h, centerX, centerY;
+    let particles = [];
+    const particleCount = 350; // 粒子数量
+
+    function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+        centerX = w / 2;
+        centerY = h / 2;
+    }
+
+    class Particle {
+        constructor() {
+            this.reset();
+        }
+        reset() {
+            // 初始位置在中心附近随机分布
+            this.angle = Math.random() * Math.PI * 2;
+            this.radius = Math.random() * 200; 
+            this.x = centerX + Math.cos(this.angle) * this.radius;
+            this.y = centerY + Math.sin(this.angle) * this.radius;
+            
+            // 速度和大小
+            this.speed = 0.002 + Math.random() * 0.004; // 旋转速度
+            this.radialSpeed = 0.3 + Math.random() * 0.5; // 向外扩散速度
+            this.size = Math.random() * 2 + 0.5;
+            
+            // 蓝灰色粒子，低透明度
+            const blue = Math.floor(150 + Math.random() * 50);
+            const grey = Math.floor(100 + Math.random() * 50);
+            this.color = `rgba(${grey}, ${grey+20}, ${blue}, ${Math.random() * 0.3 + 0.1})`;
+        }
+        update() {
+            this.angle += this.speed;
+            this.radius += this.radialSpeed;
+            this.x = centerX + Math.cos(this.angle) * this.radius;
+            this.y = centerY + Math.sin(this.angle) * this.radius;
+
+            // 如果超出屏幕范围，重置到中心
+            const maxRadius = Math.sqrt(w*w + h*h) / 1.5;
+            if (this.radius > maxRadius) {
+                 this.reset();
+                 this.radius = Math.random() * 50; // 重置时离中心近一点
+            }
+        }
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+    }
+
+    function init() {
+        resize();
+        for (let i = 0; i < particleCount; i++) {
+            particles.push(new Particle());
+        }
+        animate();
+    }
+
+    function animate() {
+        // 关键：通过覆盖半透明背景来实现长尾流效果
+        // 这里的颜色需要与 body 的背景色 (#050505) 接近
+        ctx.fillStyle = 'rgba(5, 5, 5, 0.08)'; 
+        ctx.fillRect(0, 0, w, h);
+
+        particles.forEach(p => {
+            p.update();
+            p.draw();
+        });
+        requestAnimationFrame(animate);
+    }
+
+    window.addEventListener('resize', resize);
+
+    // 整合原有的 window.onload
+    const originalOnload = window.onload;
+    window.onload = function() {
+        if (originalOnload) originalOnload();
+        init(); // 启动粒子系统
+        updateUIText(); // 初始化UI文本
+    };
+})();
+</script>
+
+</body>
+</html>
